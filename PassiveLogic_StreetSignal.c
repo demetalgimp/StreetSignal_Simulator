@@ -10,11 +10,25 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 
 #define nullptr NULL
 typedef enum { fail = -1, false, true } bool;
-typedef enum { eUnknown, eGreen, eYellow, eRed, e4WayStop} LightState;
+typedef enum {
+	eUnknown, eGreen, eYellow, eRed,
+	e4WayStop_noTraffic,
+	eNormalOperation,
+//	eNormalOperation_lightTraffic,
+//	eNormalOperation_moderateTraffic,
+//	eNormalOperation_heavyTraffic
+} LightState;
+
+#define RED_DELAY_DEFAULT 90
+#define YELLOW_DELAY_DEFAULT 5
+
+int red_delay = 90;
+int yellow_delay = 5;
 /*
  * Street signal simulation
  *
@@ -47,18 +61,20 @@ typedef enum { eUnknown, eGreen, eYellow, eRed, e4WayStop} LightState;
  *
  * 	NOTES:
  * 		* I considered implementing this with threads and semaphores, but there's no need and only complicates testing.
+ * 		* I believe that left or right turn signals are out of scope.
  */
 
-LightState street_1 = eUnknown, street_2 = eUnknown, intersection_state = eUnknown;
-int street_1_counter, street_1_counter;
-LightState *preferred = nullptr;
+//LightState street_1 = eUnknown, street_2 = eUnknown, intersection_state = eUnknown;
+//int street_1_counter, street_1_counter;
+//LightState *preferred = nullptr;
+LightState intersectionState = eUnknown;
 
 //=== TOOLS =======================================================================================================================
 bool str_startsWith(const char *str, const char *sub) {
 	if ( str != nullptr ) {
 		if ( sub != nullptr ) {
 
-			while ( *str == *sub ) {
+			while ( *str == *sub  &&  *sub != 0 ) {
 				str++, sub++;
 			}
 			return (*sub == 0);
@@ -68,129 +84,256 @@ bool str_startsWith(const char *str, const char *sub) {
 		}
 
 	} else {
-		return ( sub == nullptr);
+		return false;
 	}
-
 }
 
-//=== STATES ======================================================================================================================
-void init(void) {
-	street_1 = eRed;
-	street_2 = eRed;
-	intersection_state = e4WayStop;
+bool isBetween(int low, int test, int high) {
+	return ( low < test  &&  test < high );
 }
-
-//=== PROGRAM ENTRY ===============================================================================================================
-#define RED_DELAY_DEFAULT 90
-#define YELLOW_DELAY_DEFAULT 5
-
-int red_delay = 90;
-int yellow_delay = 5;
 
 void parse_args(const char *args[]) {
 	if ( args != nullptr ) {
 		while ( *args != nullptr ) {
-			if ( strcmp(*args, "--preferred=street1") ) {
-				preferred = &street_1;
-
-			} else if ( strcmp(*args, "--preferred=street2") ) {
-				preferred = &street_2;
-
-			} else if ( str_startsWith(*args, "--red-delay=") ) {
-				red_delay = ( atoi(*args + strlen("--red-delay"))? : RED_DELAY_DEFAULT );
+			if ( str_startsWith(*args, "--red-delay=") ) {
+				const char *seconds = *args + strlen("--red-delay=");
+				red_delay = ( atoi(seconds)? : RED_DELAY_DEFAULT );
 
 			} else if ( str_startsWith(*args, "--yellow-delay=") ) {
-				yellow_delay = ( atoi(*args + strlen("--yellow-delay"))? : YELLOW_DELAY_DEFAULT );
+				const char *seconds = *args + strlen("--yellow-delay=");
+				yellow_delay = ( atoi(seconds)? : YELLOW_DELAY_DEFAULT );
+
+//			} else if ( strcmp(*args, "--preferred=main") == 0 ) {
+//				preferred = &centerStreet;
+//
+//			} else if ( strcmp(*args, "--preferred=center") == 0 ) {
+//				preferred = &mainStreet;
 			}
+
 			args++;
 		}
+
 	} else {
 		fprintf(stderr, "Command line args are NULL. Not possible!\n");
 		abort();
 	}
 }
 
-int run_tests(void);
+//=== STATES ======================================================================================================================
+void init(void) {
+//	centerStreet = eRed;
+//	mainStreet = eRed;
+	intersectionState = e4WayStop_noTraffic;
+}
+
+//=== PROGRAM ENTRY ===============================================================================================================
+bool run = true;
+
+//typedef struct {
+	int mainStreet_carCounter;
+	int centerStreet_carCounter;
+//} IntersectionState;
+
+
+void state_loop(void) {
+	int state_step = 0;
+
+	while ( run ) {
+		switch ( intersectionState ) {
+			case e4WayStop_noTraffic:
+				if ( (state_step & 4) == 0 ) {
+					printf("Main Street's red light turns on. Center Street's red light turns off.\n");
+				}
+				if ( (state_step & 4) != 0 ) {
+					printf("Main Street's red light turns off. Center Street's red light turns on.\n");
+				}
+			//TODO: what if the cars start lining up?
+				break;
+
+			case eNormalOperation://_lightTraffic:
+
+				break;
+
+			default:
+				fprintf(stderr, "ERROR! Cannot get here!\n");
+				abort();
+		}
+		sleep(1);
+		if ( isBetween(100, random() % 1000, 200) ) {
+			mainStreet_carCounter++;
+		}
+		if ( isBetween(400, random() % 1000, 500) ) {
+			centerStreet_carCounter++;
+		}
+	}
+}
 
 int main(int cnt, const char *args[]) {
-//	if ( strcasecmp(args[1], "runtests") == 0 ) {
+	if ( strcasecmp(args[1], "test") == 0 ) {
+		int run_tests(void);
 		return run_tests();
-//
-//	} else {
-//		parse_args(++args);
-//		return EXIT_SUCCESS;
-//	}
+
+	} else {
+		parse_args(++args);
+		init();
+
+		return EXIT_SUCCESS;
+	}
 }
 
 //=== UNIT TESTS ==================================================================================================================
-void test_equals(const char *file, const char *function, int linenum, const char *expected_text, const char *got_text, int expected, int got) {
+#define _RED_ "\x1B[31m"
+#define _UNDERLINE_ "\x1B[4m"
+#define _RESET_ "\x1B[0m"
+int passed = 0, failed = 0;
+void test_int_equals(const char *file, const char *function, int linenum, const char *expected_text, const char *got_text, int expected, int got) {
 	if ( expected == got ) {
+		passed++;
 		fprintf(stdout, "%s:%s[%d]: %s ≟ %s... PASSED.\n", file, function, linenum, expected_text, got_text);
 		fflush(stdout);
 
 	} else {
-		fprintf(stderr, "%s:%s[%d]: %s ≟ %s... \x1B[31mFAILED. Expected \x1B[4m%d\x1B[0m but got \x1B[4m%d\x1B[0m\x1B[31m.\x1B[0m\n", file, function, linenum, expected_text, got_text, expected, got);
+		failed++;
+		fprintf(stderr,
+				"%s:%s[%d]: %s ≟ %s... "
+					_RED_ "FAILED. Expected "
+					_UNDERLINE_ "%d" _RESET_
+					_RED_ " but got "
+					_UNDERLINE_ "%d" _RESET_
+					_RED_ "."
+					_RESET_ "\n",
+				file, function, linenum, expected_text, got_text, expected, got);
+		fflush(stderr);
 	}
 }
-#define NUM_2_STR(num) num
-#define SEW_TEST_EQUALS(expected, result) test_equals(__FILE__, __PRETTY_FUNCTION__, __LINE__, #result, #expected, (long)result, (long)expected)
+void test_str_equals(const char *file, const char *function, int linenum, const char *expected_text, const char *got_text, char *expected, char *got) {
+	if ( strcmp(expected, got) == 0 ) {
+		passed++;
+		fprintf(stdout, "%s:%s[%d]: %s ≟ %s... PASSED.\n", file, function, linenum, expected_text, got_text);
+		fflush(stdout);
+
+	} else {
+		failed++;
+		fprintf(stderr,
+				"%s:%s[%d]: %s ≟ %s... "
+					_RED_ "FAILED. Expected "
+					_UNDERLINE_ "%s" _RESET_
+					_RED_ " but got "
+					_UNDERLINE_ "%s" _RESET_
+					_RED_ "."
+					_RESET_ "\n",
+				file, function, linenum, expected_text, got_text, expected, got);
+		fflush(stderr);
+	}
+}
+void test_assert(const char *file, const char *function, int linenum, const char *test_text, int test) {
+	if ( test ) {
+		passed++;
+		fprintf(stdout, "%s:%s[%d]: %s?... PASSED.\n", file, function, linenum, test_text);
+		fflush(stdout);
+
+	} else {
+		failed++;
+		fprintf(stderr,
+				"%s:%s[%d]: %s?... "
+					_RED_ "FAILED"
+					_RESET_ "\n",
+				file, function, linenum, test_text);
+		fflush(stderr);
+	}
+}
+
+#define SEW_TEST_ASSERT(test) test_assert(__FILE__, __PRETTY_FUNCTION__, __LINE__, #test, test)
+#define SEW_TEST_INT_EQUALS(expected, result) test_int_equals(__FILE__, __PRETTY_FUNCTION__, __LINE__, #result, #expected, (long)result, (long)expected)
+#define SEW_TEST_STR_EQUALS(expected, result) test_str_equals(__FILE__, __PRETTY_FUNCTION__, __LINE__, #result, #expected, (long)result, (long)expected)
 void test__parse_args(void) {
 	{	const char *args[] = {nullptr};
 		red_delay = -1;
 		yellow_delay = -1;
-		street_1 = eUnknown;
-		street_2 = eUnknown;
-		intersection_state = eUnknown;
+//		centerStreet = eUnknown;
+//		mainStreet = eUnknown;
+		intersectionState = eUnknown;
 
 		parse_args(args);
 
-		SEW_TEST_EQUALS(red_delay, -1);
-		SEW_TEST_EQUALS(yellow_delay, -1);
-		SEW_TEST_EQUALS(street_1, eUnknown);
-		SEW_TEST_EQUALS(street_2, eUnknown);
-		SEW_TEST_EQUALS(intersection_state, eUnknown);
-		SEW_TEST_EQUALS(preferred, nullptr);
+		SEW_TEST_INT_EQUALS(red_delay, -1);
+		SEW_TEST_INT_EQUALS(yellow_delay, -1);
+//		SEW_TEST_INT_EQUALS(centerStreet, eUnknown);
+//		SEW_TEST_INT_EQUALS(mainStreet, eUnknown);
+		SEW_TEST_INT_EQUALS(intersectionState, eUnknown);
+//		SEW_TEST_EQUALS(preferred, nullptr);
 	}
 	{
-		const char *args[] = { "--preferred=street1", "--red-delay=100", "--yellow-delay=200" };
+		const char *args[] = { "--preferred=center", "--red-delay=100", "--yellow-delay=200" };
 
 		red_delay = -1;
 		yellow_delay = -1;
-		street_1 = eUnknown;
-		street_2 = eUnknown;
-		intersection_state = eUnknown;
+//		centerStreet = eUnknown;
+//		mainStreet = eUnknown;
+		intersectionState = eUnknown;
 
 		parse_args(args);
 
-		SEW_TEST_EQUALS(red_delay, 100);
-		SEW_TEST_EQUALS(yellow_delay, 200);
-		SEW_TEST_EQUALS(street_1, eUnknown);
-		SEW_TEST_EQUALS(street_2, eUnknown);
-		SEW_TEST_EQUALS(intersection_state, eUnknown);
-		SEW_TEST_EQUALS(preferred, street_1);
+		SEW_TEST_INT_EQUALS(red_delay, 100);
+		SEW_TEST_INT_EQUALS(yellow_delay, 200);
+//		SEW_TEST_INT_EQUALS(centerStreet, eUnknown);
+//		SEW_TEST_EQUALS(mainStreet, eUnknown);
+		SEW_TEST_INT_EQUALS(intersectionState, eUnknown);
+//		SEW_TEST_INT_EQUALS(preferred, centerStreet);
 	}
 	{
-		const char *args[] = { "--preferred=street2", "--red-delay=1", "--yellow-delay=2" };
+		const char *args[] = { "--preferred=main", "--red-delay=1", "--yellow-delay=2" };
 
 		red_delay = -1;
 		yellow_delay = -1;
-		street_1 = eUnknown;
-		street_2 = eUnknown;
-		intersection_state = eUnknown;
+//		centerStreet = eUnknown;
+//		mainStreet = eUnknown;
+		intersectionState = eUnknown;
 
 		parse_args(args);
 
-		SEW_TEST_EQUALS(red_delay, 1);
-		SEW_TEST_EQUALS(yellow_delay, 2);
-		SEW_TEST_EQUALS(street_1, eUnknown);
-		SEW_TEST_EQUALS(street_2, eUnknown);
-		SEW_TEST_EQUALS(intersection_state, eUnknown);
-		SEW_TEST_EQUALS(preferred, street_2);
+		SEW_TEST_INT_EQUALS(red_delay, 1);
+		SEW_TEST_INT_EQUALS(yellow_delay, 2);
+//		SEW_TEST_INT_EQUALS(centerStreet, eUnknown);
+//		SEW_TEST_INT_EQUALS(mainStreet, eUnknown);
+		SEW_TEST_INT_EQUALS(intersectionState, eUnknown);
+//		SEW_TEST_INT_EQUALS(preferred, mainStreet);
 	}
+}
+
+void test__str_startsWith(void) {
+	SEW_TEST_ASSERT(!str_startsWith(nullptr, nullptr));
+	SEW_TEST_ASSERT(!str_startsWith(nullptr, ""));
+	SEW_TEST_ASSERT(str_startsWith("", nullptr));
+	SEW_TEST_ASSERT(str_startsWith("", ""));
+	SEW_TEST_ASSERT(str_startsWith("a", nullptr));
+	SEW_TEST_ASSERT(str_startsWith("abc", ""));
+	SEW_TEST_ASSERT(str_startsWith("abc", "a"));
+	SEW_TEST_ASSERT(str_startsWith("abc", "ab"));
+	SEW_TEST_ASSERT(!str_startsWith("abc", "ax"));
+	SEW_TEST_ASSERT(!str_startsWith("abc", "bc"));
+	SEW_TEST_ASSERT(!str_startsWith("abc", "x"));
+}
+
+void test_isBetween(void) {
+	SEW_TEST_ASSERT(!isBetween(0,0,0));
+	SEW_TEST_ASSERT(!isBetween(0,0,10));
+	SEW_TEST_ASSERT(!isBetween(0,10,0));
+	SEW_TEST_ASSERT(!isBetween(0,10,10));
+	SEW_TEST_ASSERT(!isBetween(10,0,0));
+	SEW_TEST_ASSERT(!isBetween(10,0,10));
+	SEW_TEST_ASSERT(!isBetween(10,10,0));
+	SEW_TEST_ASSERT(!isBetween(10,10,10));
+
+	SEW_TEST_ASSERT(isBetween(0,5,10));
+	SEW_TEST_ASSERT(isBetween(0,1,10));
+	SEW_TEST_ASSERT(isBetween(0,9,10));
 }
 
 int run_tests(void) {
 	test__parse_args();
+	test__str_startsWith();
+	fprintf((failed > 0? stderr: stdout), "%d/%d tests failed\n", failed, failed + passed);
 	return 0;
 }
 
