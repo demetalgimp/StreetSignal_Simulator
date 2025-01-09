@@ -42,11 +42,11 @@ void test_str_equals(const char *file, const char *function, int linenum, const 
 
 	} else {
 		failed++;
-		char nl = (strchr(expected_text, '\n') == nullptr? '\n': ' ');
+		char nl = (strchr(expected, '\n') != nullptr? '\n': '"');
 		fprintf(stderr,
 				"%s:%s[%d]: %s ≟ %s... "
-					_RED_ "FAILED. Expected %c" _RESET_ "%s" _RED_ " but got %c" _RESET_ "%s" _RED_ "." _RESET_ "\n",
-				file, function, linenum, expected_text, got_text, nl, expected, nl, got);
+					_RED_ "FAILED. Expected " _RESET_ "%c%s" _RED_ _RESET_ "%c" _RED_ " but got " _RESET_ "%c%s%c" _RED_ "." _RESET_ "\n",
+				file, function, linenum, expected_text, got_text, nl, expected, nl, nl, got, nl);
 		fflush(stderr);
 	}
 }

@@ -1,3 +1,4 @@
+//tabstop=4
 /*
  * PassiveLogic_StreetSignal.h
  *
@@ -8,8 +9,7 @@
 #ifndef PASSIVELOGIC_STREETSIGNAL_H_
 #define PASSIVELOGIC_STREETSIGNAL_H_
 
-#define nullptr NULL
-typedef enum { false, true } bool;
+#include "PassiveLogic_Tools.h"
 
 #define _RED_       "\x1B[31m"
 #define _YELLOW_    "\x1B[93m"
@@ -17,42 +17,75 @@ typedef enum { false, true } bool;
 #define _UNDERLINE_ "\x1B[4m"
 #define _RESET_     "\x1B[0m"
 
+#define VEHICLE_SYMBOL__EAST_BOUND '>'
+#define VEHICLE_SYMBOL__WEST_BOUND '<'
+#define VEHICLE_SYMBOL__NORTH_BOUND '^'
+#define VEHICLE_SYMBOL__SOUTH_BOUND 'v'
+
 //=== STATES ======================================================================================================================
-typedef enum { eGreen, eYellow, eRed, eOff } SemaphoreColor;
+typedef enum { eOff = 0, eGreen, eYellow, eRed } SemaphoreColor;
 typedef enum {
-	eUnknown,
-	e4WayStop_noTraffic,
+	eUnknown = 0,
+	e4WayStop,
+	e4WayStop_to_NormalOperation,
 	eNormalOperation,
-	e4Way_to_NormalOperation,
-	eCountdown,
-//	eNormalOperation_lightTraffic,
-//	eNormalOperation_moderateTraffic,
-//	eNormalOperation_heavyTraffic
+	eNormalOperation_to_4WayStop, // TODO
 } LightState;
 
+#define CENTER_TRAFFIC_LANE_SIZE	10
+#define STATE_TRAFFIC_LANE_SIZE		7
+
+#define QUEUE_SIZE	10
+#define LANE_SIZE	7
+
 typedef struct {
-	bool isMainStreet;
+	char Symbol;
+	SemaphoreColor color;
+	enum { eApproachingIntersection, eLeavingIntersection } Direction;
+	char Queue[QUEUE_SIZE];
+	char Lane[LANE_SIZE];
+} TrafficLane;
+
+typedef struct {
+//	bool isMainStreet;
 	LightState intersectionState;
 	int stateStep;
 
 	int greenCountdown;
 
-	SemaphoreColor center_west;
-	int east_bound;
-	SemaphoreColor center_east;
-	int west_bound;
-	SemaphoreColor main_north;
-	int south_bound;
-	SemaphoreColor main_south;
-	int north_bound;
+	TrafficLane west_bound;
+	TrafficLane east_bound;
+	TrafficLane north_bound;
+	TrafficLane south_bound;
 
-	int green_duration;
-	int yellow_duration;
+	SemaphoreColor westbound;
+	int east_bound_counter;
+	char WestBound_Queue[CENTER_TRAFFIC_LANE_SIZE + 1];
+	char WestBound_Lane[CENTER_TRAFFIC_LANE_SIZE + 1];
+
+	SemaphoreColor center_eastbound;
+	int west_bound_counter;
+	char EastBound_Queue[CENTER_TRAFFIC_LANE_SIZE + 1];
+	char EastBound_Lane[CENTER_TRAFFIC_LANE_SIZE + 1];
+
+	SemaphoreColor main_northbound;
+	int south_bound_counter;
+	char NorthBound_Queue[STATE_TRAFFIC_LANE_SIZE + 1];
+	char NorthBound_Lane[STATE_TRAFFIC_LANE_SIZE + 1];
+
+	SemaphoreColor main_southbound;
+	int north_bound_counter;
+	char SouthBound_Queue[STATE_TRAFFIC_LANE_SIZE + 1];
+	char SouthBound_Lane[STATE_TRAFFIC_LANE_SIZE + 1];
+
+//	int green_duration;
+//	int yellow_duration;
 } MachineState;
 
+//--- For unit testing
+void MachineState_init(MachineState *state);
 void parse_args(const char *args[], MachineState *state);
-bool isBetween(int low, int test, int high);
-bool str_startsWith(const char *str, const char *sub);
-const char *getSemaphoreGraphic(MachineState *state);
+const char *getTrafficSignalGraphic(MachineState *state);
+void MoveLane(bool hasGreenLight, char vehicle_symbol, char *lane, int lane_size, char *queue, int queue_size);
 
 #endif /* PASSIVELOGIC_STREETSIGNAL_H_ */
