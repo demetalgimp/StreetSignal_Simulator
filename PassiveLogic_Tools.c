@@ -1,3 +1,4 @@
+//tabstop=4
 /*
  * PassiveLogic_Tools.c
  *
@@ -26,4 +27,16 @@ bool str_startsWith(const char *str, const char *sub) {
 
 bool isBetween(int low, int test, int high) {
 	return ( low < test  &&  test < high );
+}
+
+int strcnt(const char *str, char c) {
+	int cnt = 0;
+	if ( str != nullptr ) {
+		while ( *str != 0 ) {
+			if ( *str++ == c ) {
+				cnt++;
+			}
+		}
+	}
+	return cnt;
 }

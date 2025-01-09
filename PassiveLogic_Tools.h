@@ -1,3 +1,4 @@
+//tabstop=4
 /*
  * PassiveLogic_Tools.h
  *
@@ -15,5 +16,6 @@ typedef enum { false, true } bool;
 
 bool str_startsWith(const char *str, const char *sub);
 bool isBetween(int low, int test, int high);
+int strcnt(const char *str, char c);
 
 #endif /* PASSIVELOGIC_TOOLS_H_ */

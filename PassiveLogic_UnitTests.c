@@ -1,3 +1,4 @@
+//tabstop=4
 /*
  * unittests.c
  *
@@ -84,6 +85,18 @@ void test__isBetween(void) {
 	TEST_ASSERT(isBetween(0,9,10));
 }
 
+void test__strcnt(void) {
+	TEST_INT_EQUALS(strcnt(nullptr, ' '), 0);
+	TEST_INT_EQUALS(strcnt("", ' '), 0);
+	TEST_INT_EQUALS(strcnt("abcdefg", ' '), 0);
+	TEST_INT_EQUALS(strcnt(".", '.'), 1);
+	TEST_INT_EQUALS(strcnt(".abcdef", '.'), 1);
+	TEST_INT_EQUALS(strcnt("a.bcdef", '.'), 1);
+	TEST_INT_EQUALS(strcnt("..abcdef", '.'), 2);
+	TEST_INT_EQUALS(strcnt(".abcde.f", '.'), 2);
+	TEST_INT_EQUALS(strcnt("....", '.'), 4);
+}
+
 void test__getSemaphoreGraphic(void) {
 	MachineState state;
 	MachineState_init(&state);
@@ -103,8 +116,8 @@ void test__getSemaphoreGraphic(void) {
 								"         |   e   |\n" \
 								"         |   e   |\n" \
 								"         |   t   |\n"
-		state.west_bound_counter = state.east_bound_counter = 0;
-		state.north_bound_counter = state.south_bound_counter = 0;
+//		state.west_bound_counter = state.east_bound_counter = 0;
+//		state.north_bound_counter = state.south_bound_counter = 0;
 		const char *red_graphic =
 				NORTH_BOUND_LANE_NONE
 				"---------  " _RESET_ "[" _RED_ "0" _RESET_ "OO]  ---------\n"
@@ -113,10 +126,10 @@ void test__getSemaphoreGraphic(void) {
 				"                           \n"
 				"---------  " _RESET_ "[" _RED_ "0" _RESET_ "OO]  ---------\n"
 				SOUTH_BOUND_LANE_NONE;
-		state.westbound = state.center_eastbound = eRed;
-		state.main_northbound = state.main_southbound = eRed;
+		state.westbound = state.eastbound = eRed;
+		state.northbound = state.southbound = eRed;
 
-		TEST_STR_EQUALS(getTrafficSignalGraphic(&state), red_graphic);
+		TEST_STR_EQUALS(drawTrafficSignalGraphic(&state), red_graphic);
 
 		const char *yellow_graphic =
 				NORTH_BOUND_LANE_NONE
@@ -126,9 +139,9 @@ void test__getSemaphoreGraphic(void) {
 				"                           \n"
 				"---------  " _RESET_ "[O\x1B[93m0" _RESET_ "O]  ---------\n"
 				SOUTH_BOUND_LANE_NONE;
-		state.westbound = state.center_eastbound = eYellow;
-		state.main_northbound = state.main_southbound = eYellow;
-		TEST_STR_EQUALS(getTrafficSignalGraphic(&state), yellow_graphic);
+		state.westbound = state.eastbound = eYellow;
+		state.northbound = state.southbound = eYellow;
+		TEST_STR_EQUALS(drawTrafficSignalGraphic(&state), yellow_graphic);
 
 		const char *green_graphic =
 				NORTH_BOUND_LANE_NONE
@@ -138,9 +151,9 @@ void test__getSemaphoreGraphic(void) {
 				"                           \n"
 				"---------  " _RESET_ "[OO" _GREEN_ "0" _RESET_ "]  ---------\n"
 				SOUTH_BOUND_LANE_NONE;
-		state.westbound = state.center_eastbound = eGreen;
-		state.main_northbound = state.main_southbound = eGreen;
-		TEST_STR_EQUALS(getTrafficSignalGraphic(&state), green_graphic);
+		state.westbound = state.eastbound = eGreen;
+		state.northbound = state.southbound = eGreen;
+		TEST_STR_EQUALS(drawTrafficSignalGraphic(&state), green_graphic);
 
 		const char *off_graphic =
 				NORTH_BOUND_LANE_NONE
@@ -150,9 +163,9 @@ void test__getSemaphoreGraphic(void) {
 				"                           \n"
 				"---------  " _RESET_ "[OOO]  ---------\n"
 				SOUTH_BOUND_LANE_NONE;
-		state.westbound = state.center_eastbound = eOff;
-		state.main_northbound = state.main_southbound = eOff;
-		TEST_STR_EQUALS(getTrafficSignalGraphic(&state), off_graphic);
+		state.westbound = state.eastbound = eOff;
+		state.northbound = state.southbound = eOff;
+		TEST_STR_EQUALS(drawTrafficSignalGraphic(&state), off_graphic);
 	}
 }
 
