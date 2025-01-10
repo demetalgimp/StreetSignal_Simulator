@@ -86,15 +86,15 @@ void test__isBetween(void) {
 }
 
 void test__strcnt(void) {
-	TEST_INT_EQUALS(strcnt(nullptr, ' '), 0);
-	TEST_INT_EQUALS(strcnt("", ' '), 0);
-	TEST_INT_EQUALS(strcnt("abcdefg", ' '), 0);
-	TEST_INT_EQUALS(strcnt(".", '.'), 1);
-	TEST_INT_EQUALS(strcnt(".abcdef", '.'), 1);
-	TEST_INT_EQUALS(strcnt("a.bcdef", '.'), 1);
-	TEST_INT_EQUALS(strcnt("..abcdef", '.'), 2);
-	TEST_INT_EQUALS(strcnt(".abcde.f", '.'), 2);
-	TEST_INT_EQUALS(strcnt("....", '.'), 4);
+	TEST_INT_EQUALS(str_countChars(nullptr, ' '), 0);
+	TEST_INT_EQUALS(str_countChars("", ' '), 0);
+	TEST_INT_EQUALS(str_countChars("abcdefg", ' '), 0);
+	TEST_INT_EQUALS(str_countChars(".", '.'), 1);
+	TEST_INT_EQUALS(str_countChars(".abcdef", '.'), 1);
+	TEST_INT_EQUALS(str_countChars("a.bcdef", '.'), 1);
+	TEST_INT_EQUALS(str_countChars("..abcdef", '.'), 2);
+	TEST_INT_EQUALS(str_countChars(".abcde.f", '.'), 2);
+	TEST_INT_EQUALS(str_countChars("....", '.'), 4);
 }
 
 void test__getSemaphoreGraphic(void) {

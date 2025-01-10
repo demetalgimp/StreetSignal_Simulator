@@ -35,16 +35,6 @@
  *		* There's a lot that could be optimized especially the ascii graphic. I really
  *		would like to have "objectify" the data with methods that approximate OOP.
  */
-//void TrafficLane_init(TrafficLane *lane, char symbol, bool is_reversed) {
-//	memset(lane, 0, sizeof(*lane));
-//	memset(lane->Lane, ' ', sizeof(lane->Lane));
-//	lane->Lane[sizeof(lane->Lane) - 1] = 0;
-//	memset(lane->Queue, ' ', sizeof(lane->Queue));
-//	lane->Queue[sizeof(lane->Queue) - 1] = 0;
-//	lane->Direction = is_reversed;
-//	lane->Symbol = symbol;
-//	lane->color = eOff;
-//}
 
 void MachineState_init(MachineState *state) {
 	state->intersectionState = e4WayStop;
@@ -56,10 +46,6 @@ void MachineState_init(MachineState *state) {
 	state->northbound = eRed;
 	state->southbound = eRed;
 
-//	init_TrafficLane(&state->east_bound, VEHICLE_SYMBOL__EAST_BOUND, false);
-//	init_TrafficLane(&state->west_bound, VEHICLE_SYMBOL__WEST_BOUND, true);
-//	init_TrafficLane(&state->north_bound, VEHICLE_SYMBOL__NORTH_BOUND, false);
-//	init_TrafficLane(&state->south_bound, VEHICLE_SYMBOL__SOUTH_BOUND, true);
 	memset(state->SouthBound_Queue, ' ', sizeof(state->SouthBound_Queue));
 	memset(state->SouthBound_Lane, ' ', sizeof(state->SouthBound_Lane));
 	memset(state->NorthBound_Queue, ' ', sizeof(state->NorthBound_Queue));
@@ -156,8 +142,8 @@ const char *drawTrafficSignalGraphic(MachineState *state) {
 }
 
 void MoveLane(bool hasGreenLight, char vehicle_symbol, char *lane, int lane_size, char *queue, int queue_size) {
-	bool isForwards = (vehicle_symbol == VEHICLE_SYMBOL__EAST_BOUND  ||  vehicle_symbol == VEHICLE_SYMBOL__SOUTH_BOUND);
-	if ( isForwards ) { // [lane <-- ][queue <-- ]
+	bool shift_array_LSB = (vehicle_symbol == VEHICLE_SYMBOL__EAST_BOUND  ||  vehicle_symbol == VEHICLE_SYMBOL__SOUTH_BOUND);
+	if ( shift_array_LSB ) { // [lane <-- ][queue <-- ]
 		for ( int i = lane_size - 1; i > 0; i-- ) {
 			lane[i] = lane[i - 1];
 			lane[i - 1] = ' ';
@@ -214,27 +200,30 @@ void MoveTraffic(MachineState *state) {
 }
 
 void LowTraffic_4WayStop(MachineState *state) {
-	bool isMainStreet = ((state->stateStep % 2) == 0);
-	if ( isMainStreet ) {
+	bool is_north_south = ((state->stateStep % 2) == 0);
+	if ( is_north_south ) {
 		printf("Main Street's red light turns on. Center Street's red light turns off.\n");
-		state->westbound = state->eastbound = eOff;
-		state->northbound = state->southbound = eRed;
+		state->westbound = eOff;
+		state->eastbound = eOff;
+		state->northbound = eRed;
+		state->southbound = eRed;
 	}
 
-	if ( !isMainStreet ) {
+	if ( !is_north_south ) {
 		printf("Main Street's red light turns off. Center Street's red light turns on.\n");
-		state->westbound = state->eastbound = eRed;
-		state->northbound = state->southbound = eOff;
+		state->westbound = eRed;
+		state->eastbound = eRed;
+		state->northbound = eOff;
+		state->southbound = eOff;
 	}
 
 	MoveTraffic(state);
-
 	printf("%s", drawTrafficSignalGraphic(state));
 
-	if ( strcnt(state->SouthBound_Queue, VEHICLE_SYMBOL__SOUTH_BOUND) > NORTH_SOUTH_MIN_QUEUE
-			||  strcnt(state->NorthBound_Queue, VEHICLE_SYMBOL__NORTH_BOUND) > NORTH_SOUTH_MIN_QUEUE
-			||  strcnt(state->EastBound_Queue, VEHICLE_SYMBOL__EAST_BOUND) > EAST_WEST_MIN_QUEUE
-			||  strcnt(state->WestBound_Queue, VEHICLE_SYMBOL__WEST_BOUND) > EAST_WEST_MIN_QUEUE ) {
+	if ( str_countChars(state->SouthBound_Queue, VEHICLE_SYMBOL__SOUTH_BOUND) > NORTH_SOUTH_MIN_QUEUE
+			||  str_countChars(state->NorthBound_Queue, VEHICLE_SYMBOL__NORTH_BOUND) > NORTH_SOUTH_MIN_QUEUE
+			||  str_countChars(state->EastBound_Queue, VEHICLE_SYMBOL__EAST_BOUND) > EAST_WEST_MIN_QUEUE
+			||  str_countChars(state->WestBound_Queue, VEHICLE_SYMBOL__WEST_BOUND) > EAST_WEST_MIN_QUEUE ) {
 		state->intersectionState = e4WayStop_to_NormalOperation;
 	}
 }
@@ -242,13 +231,17 @@ void LowTraffic_4WayStop(MachineState *state) {
 void IncreasedTraffic_4WayStop_to_NormalOperations(MachineState *state) {
 	if ( state->northbound == eGreen  &&  state->southbound == eGreen ) {
 		printf("Main Street's red light turns off; green turns on. Center Street's red light turns on.\n");
-		state->westbound = state->eastbound = eGreen;
-		state->northbound = state->southbound = eRed;
+		state->westbound = eGreen;
+		state->eastbound = eGreen;
+		state->northbound = eRed;
+		state->southbound = eRed;
 
 	} else { //--- east- & west-bound lanes are open
 		printf("Main Street's red light turns on. Center Street's red light turns off; green turns on.\n");
-		state->westbound = state->eastbound = eRed;
-		state->northbound = state->southbound = eGreen;
+		state->westbound = eRed;
+		state->eastbound = eRed;
+		state->northbound = eGreen;
+		state->southbound = eGreen;
 	}
 
 	state->greenCountdown = DEFAULT_GREEN_SECS;
@@ -262,22 +255,28 @@ void NormalTraffic_GreenLightCountdown(MachineState *state) {
 //--- Transition to "red"
 	if ( state->greenCountdown <= 0 ) {
 			if ( state->northbound == eYellow  &&  state->southbound == eYellow ) {
-				state->westbound = state->eastbound = eGreen;
-				state->northbound = state->southbound = eRed;
+				state->westbound = eGreen;
+				state->eastbound = eGreen;
+				state->northbound = eRed;
+				state->southbound = eRed;
 
 			} else { // <-- Center Street
-				state->westbound = state->eastbound = eRed;
-				state->northbound = state->southbound = eGreen;
+				state->westbound = eRed;
+				state->eastbound = eRed;
+				state->northbound = eGreen;
+				state->southbound = eGreen;
 			}
 			state->greenCountdown = DEFAULT_GREEN_SECS;
 
 //--- Transition "yellow" (thru-moving traffic)
 	} else if ( isBetween(0, state->greenCountdown, DEFAULT_YELLOW_SECS) ) {
 		if ( state->northbound != eRed  &&  state->southbound != eRed ) {
-			state->northbound = state->southbound = eYellow;
+			state->northbound = eYellow;
+			state->southbound = eYellow;
 
 		} else { // <-- Center Street
-			state->westbound = state->eastbound = eYellow;
+			state->westbound = eYellow;
+			state->eastbound = eYellow;
 		}
 
 	} else {//--- Operate under "green" state (thru-moving traffic)
@@ -329,14 +328,7 @@ void state_loop(MachineState *state) {
 void parse_args(const char *args[], MachineState *state) {
 	if ( args != nullptr ) {
 		while ( *args != nullptr ) {
-//			if ( str_startsWith(*args, "--green-delay=") ) {
-//				const char *seconds = *args + strlen("--green-delay=");
-//				state->green_duration = ( atoi(seconds)? : GREEN_DURATION_DEFAULT );
-//
-//			} else if ( str_startsWith(*args, "--yellow-delay=") ) {
-//				const char *seconds = *args + strlen("--yellow-delay=");
-//				state->yellow_duration = ( atoi(seconds)? : YELLOW_DURATION_DEFAULT );
-//			}
+			//TODO: add config here
 			args++;
 		}
 
