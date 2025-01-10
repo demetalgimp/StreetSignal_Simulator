@@ -37,11 +37,24 @@ typedef enum {
 #define QUEUE_SIZE	10
 #define LANE_SIZE	7
 
+//typedef struct {
+//	char Symbol;
+//	SemaphoreColor color;
+//	enum { eApproachingIntersection, eLeavingIntersection } Direction;
+//	char Queue[QUEUE_SIZE];
+//	char Lane[LANE_SIZE];
+//} TrafficLane;
+
 typedef struct {
 	LightState intersectionState;
 	int stateStep;
 
 	int greenCountdown;
+
+//	TrafficLane west_bound;
+//	TrafficLane east_bound;
+//	TrafficLane north_bound;
+//	TrafficLane south_bound;
 
 	SemaphoreColor westbound;
 	char WestBound_Queue[CENTER_TRAFFIC_LANE_SIZE + 1];
