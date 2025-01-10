@@ -523,4 +523,3 @@ int run_tests(void) {
 	fprintf((failed > 0? stderr: stdout), "%d/%d tests failed\n", failed, failed + passed);
 	return 0;
 }
-
