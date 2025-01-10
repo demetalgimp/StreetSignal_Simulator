@@ -35,16 +35,6 @@
  *		* There's a lot that could be optimized especially the ascii graphic. I really
  *		would like to have "objectify" the data with methods that approximate OOP.
  */
-//void TrafficLane_init(TrafficLane *lane, char symbol, bool is_reversed) {
-//	memset(lane, 0, sizeof(*lane));
-//	memset(lane->Lane, ' ', sizeof(lane->Lane));
-//	lane->Lane[sizeof(lane->Lane) - 1] = 0;
-//	memset(lane->Queue, ' ', sizeof(lane->Queue));
-//	lane->Queue[sizeof(lane->Queue) - 1] = 0;
-//	lane->Direction = is_reversed;
-//	lane->Symbol = symbol;
-//	lane->color = eOff;
-//}
 
 void MachineState_init(MachineState *state) {
 	state->intersectionState = e4WayStop;
@@ -56,10 +46,6 @@ void MachineState_init(MachineState *state) {
 	state->northbound = eRed;
 	state->southbound = eRed;
 
-//	init_TrafficLane(&state->east_bound, VEHICLE_SYMBOL__EAST_BOUND, false);
-//	init_TrafficLane(&state->west_bound, VEHICLE_SYMBOL__WEST_BOUND, true);
-//	init_TrafficLane(&state->north_bound, VEHICLE_SYMBOL__NORTH_BOUND, false);
-//	init_TrafficLane(&state->south_bound, VEHICLE_SYMBOL__SOUTH_BOUND, true);
 	memset(state->SouthBound_Queue, ' ', sizeof(state->SouthBound_Queue));
 	memset(state->SouthBound_Lane, ' ', sizeof(state->SouthBound_Lane));
 	memset(state->NorthBound_Queue, ' ', sizeof(state->NorthBound_Queue));
@@ -329,14 +315,7 @@ void state_loop(MachineState *state) {
 void parse_args(const char *args[], MachineState *state) {
 	if ( args != nullptr ) {
 		while ( *args != nullptr ) {
-//			if ( str_startsWith(*args, "--green-delay=") ) {
-//				const char *seconds = *args + strlen("--green-delay=");
-//				state->green_duration = ( atoi(seconds)? : GREEN_DURATION_DEFAULT );
-//
-//			} else if ( str_startsWith(*args, "--yellow-delay=") ) {
-//				const char *seconds = *args + strlen("--yellow-delay=");
-//				state->yellow_duration = ( atoi(seconds)? : YELLOW_DURATION_DEFAULT );
-//			}
+//TODO: options go here.
 			args++;
 		}
 
