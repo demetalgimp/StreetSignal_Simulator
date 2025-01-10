@@ -29,7 +29,7 @@ bool isBetween(int low, int test, int high) {
 	return ( low < test  &&  test < high );
 }
 
-int strcnt(const char *str, char c) {
+int str_countChars(const char *str, char c) {
 	int cnt = 0;
 	if ( str != nullptr ) {
 		while ( *str != 0 ) {
